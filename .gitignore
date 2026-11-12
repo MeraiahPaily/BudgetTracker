@@ -1,0 +1,22 @@
+# Build results
+[bB]in/
+[oO]bj/
+[lL]og/
+[lL]ogs/
+
+# IDE / Editor files
+.idea/
+.vs/
+*.user
+*.userosscache
+*.suo
+*.userprefs
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+
+# OS generated files
+.DS_Store
+Thumbs.db

@@ -1,0 +1,328 @@
+@model BudgetViewModel
+
+<div class="app">
+
+    <header class="header">
+        <div class="header-inner">
+            <div class="logo">
+                <span class="logo-icon">◈</span>
+                <span class="logo-text">BUDGET<span class="logo-accent">TRACK</span></span>
+            </div>
+            <p class="header-sub">Personal Finance Dashboard</p>
+        </div>
+    </header>
+
+    <main class="main">
+
+        @if (Model.IsOverBudget)
+        {
+            <div class="alert alert--danger">
+                🚨 <strong>Over budget!</strong> You've spent ₹@Model.ThisMonthExpenses.ToString("N0") this month — your limit is ₹@Model.MonthlyLimit.ToString("N0").
+            </div>
+        }
+        else if (Model.IsNearBudget)
+        {
+            <div class="alert alert--warning">
+                ⚠️ <strong>Heads up!</strong> You've used @((int)Model.BudgetUsedPercent)% of your ₹@Model.MonthlyLimit.ToString("N0") monthly budget.
+            </div>
+        }
+
+        <!-- Summary Cards -->
+        <section class="summary">
+            <div class="card card--balance @(Model.Balance >= 0 ? "card--positive" : "card--negative")">
+                <span class="card-label">Net Balance</span>
+                <span class="card-amount">@(Model.Balance >= 0 ? "+" : "")₹@Math.Abs(Model.Balance).ToString("N0")</span>
+            </div>
+            <div class="card card--income">
+                <span class="card-label">Total Income</span>
+                <span class="card-amount">+₹@Model.TotalIncome.ToString("N0")</span>
+            </div>
+            <div class="card card--expense">
+                <span class="card-label">Total Expenses</span>
+                <span class="card-amount">-₹@Model.TotalExpenses.ToString("N0")</span>
+            </div>
+            @if (Model.MonthlyLimit > 0)
+            {
+                <div class="card card--budget">
+                    <span class="card-label">This Month / Limit</span>
+                    <span class="card-amount @(Model.IsOverBudget ? "over" : Model.IsNearBudget ? "near" : "")">
+                        ₹@Model.ThisMonthExpenses.ToString("N0") <span style="font-size:1rem;font-weight:400;opacity:.6">/ ₹@Model.MonthlyLimit.ToString("N0")</span>
+                    </span>
+                    <div class="budget-bar-wrap">
+                        <div class="budget-bar" style="width:@((int)Model.BudgetUsedPercent)%" class="@(Model.IsOverBudget ? "over" : "")"></div>
+                    </div>
+                </div>
+            }
+        </section>
+
+        <div class="content-grid">
+
+            <!-- LEFT COLUMN: Forms -->
+            <div class="left-col">
+
+                <!-- Add Transaction -->
+                <section class="panel">
+                    <h2 class="panel-title">Add Transaction</h2>
+                    <form asp-action="Add" method="post" class="form">
+                        <div class="form-group">
+                            <label class="form-label">Description</label>
+                            <input type="text" name="Description" class="form-input" placeholder="e.g. Grocery shopping" required />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Amount (₹)</label>
+                            <input type="number" name="Amount" class="form-input" placeholder="0" step="1" min="1" required />
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Type</label>
+                                <select name="Type" class="form-select">
+                                    <option value="0">Income</option>
+                                    <option value="1">Expense</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Category</label>
+                                <select name="Category" class="form-select">
+                                    <optgroup label="Income">
+                                        <option>Salary</option>
+                                        <option>Freelance</option>
+                                        <option>Investment</option>
+                                        <option>Gift</option>
+                                    </optgroup>
+                                    <optgroup label="Expenses">
+                                        <option>Food</option>
+                                        <option>Rent</option>
+                                        <option>Transport</option>
+                                        <option>Shopping</option>
+                                        <option>Health</option>
+                                        <option>Entertainment</option>
+                                        <option>Utilities</option>
+                                        <option>Other</option>
+                                    </optgroup>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-submit">+ Add Entry</button>
+                    </form>
+                </section>
+
+                <!-- Set Budget Limit -->
+                <section class="panel" style="margin-top:16px;">
+                    <h2 class="panel-title">Monthly Budget Limit</h2>
+                    <form asp-action="SetBudgetLimit" method="post" class="form">
+                        <div class="form-group">
+                            <label class="form-label">Limit (₹) — 0 to disable</label>
+                            <input type="number" name="monthlyLimit" class="form-input"
+                                   value="@Model.MonthlyLimit" min="0" step="100" />
+                        </div>
+                        <button type="submit" class="btn-submit btn-submit--secondary">Save Limit</button>
+                    </form>
+                </section>
+
+                <!-- Recurring Transactions -->
+                <section class="panel" style="margin-top:16px;">
+                    <h2 class="panel-title">Recurring Transactions</h2>
+
+                    @if (Model.RecurringTransactions.Any())
+                    {
+                        <ul class="recurring-list">
+                            @foreach (var r in Model.RecurringTransactions)
+                            {
+                                <li class="recurring-item @(r.Type == TransactionType.Income ? "income" : "expense")">
+                                    <div>
+                                        <span class="t-desc">@r.Description</span>
+                                        <span class="t-category">@r.Category · every @r.DayOfMonth@(r.DayOfMonth == 1 ? "st" : r.DayOfMonth == 2 ? "nd" : r.DayOfMonth == 3 ? "rd" : "th")</span>
+                                    </div>
+                                    <div style="display:flex;align-items:center;gap:10px;">
+                                        <span class="t-amount @(r.Type == TransactionType.Income ? "income" : "expense")">
+                                            @(r.Type == TransactionType.Income ? "+" : "-")₹@r.Amount.ToString("N0")
+                                        </span>
+                                        <form asp-action="DeleteRecurring" method="post" style="display:inline">
+                                            <input type="hidden" name="id" value="@r.Id" />
+                                            <button type="submit" class="btn-delete">✕</button>
+                                        </form>
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    }
+
+                    <form asp-action="AddRecurring" method="post" class="form" style="margin-top:16px;">
+                        <div class="form-group">
+                            <label class="form-label">Description</label>
+                            <input type="text" name="Description" class="form-input" placeholder="e.g. Rent" required />
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Amount (₹)</label>
+                                <input type="number" name="Amount" class="form-input" placeholder="0" min="1" required />
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Day of month</label>
+                                <input type="number" name="DayOfMonth" class="form-input" placeholder="1-28" min="1" max="28" required />
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Type</label>
+                                <select name="Type" class="form-select">
+                                    <option value="0">Income</option>
+                                    <option value="1">Expense</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Category</label>
+                                <select name="Category" class="form-select">
+                                    <option>Salary</option><option>Freelance</option><option>Investment</option>
+                                    <option>Food</option><option>Rent</option><option>Transport</option>
+                                    <option>Shopping</option><option>Health</option><option>Entertainment</option>
+                                    <option>Utilities</option><option>Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-submit btn-submit--secondary">+ Add Recurring</button>
+                    </form>
+                </section>
+
+            </div>
+
+            <!-- RIGHT COLUMN: Charts + Transactions -->
+            <div class="right-col">
+
+                <!-- Charts row -->
+                @if (Model.Transactions.Any())
+                {
+                    <div class="charts-row">
+
+                        <!-- Monthly bar chart -->
+                        <section class="panel chart-panel">
+                            <div class="panel-title">Monthly Overview</div>
+                            @{
+                                var maxVal = Model.MonthlyChart.Max(m => Math.Max(m.Income, m.Expenses));
+                                if (maxVal == 0) maxVal = 1;
+                            }
+                            <div style="display:flex; gap:12px; align-items:flex-end; height:80px;">
+                                @foreach (var m in Model.MonthlyChart)
+                                {
+                                    var incomePct = (int)((m.Income / maxVal) * 76);
+                                    var expPct = (int)((m.Expenses / maxVal) * 76);
+                                    <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+                                        <div style="display:flex;gap:3px;align-items:flex-end;height:76px;">
+                                            <div class="chart-bar income-bar" style="width:10px;height:@(incomePct == 0 ? 3 : incomePct)px;" title="Income ₹@m.Income.ToString("N0")"></div>
+                                            <div class="chart-bar expense-bar" style="width:10px;height:@(expPct == 0 ? 3 : expPct)px;" title="Expenses ₹@m.Expenses.ToString("N0")"></div>
+                                        </div>
+                                        <span class="chart-bar-label">@m.Month</span>
+                                    </div>
+                                }
+                            </div>
+                            <div class="chart-legend">
+                                <span class="legend-item"><span class="legend-dot" style="background:var(--income)"></span>Income</span>
+                                <span class="legend-item"><span class="legend-dot" style="background:var(--expense)"></span>Expenses</span>
+                            </div>
+                        </section>
+
+                        <!-- Donut chart -->
+                        @if (Model.CategoryBreakdown.Any())
+                        {
+                            <section class="panel chart-panel">
+                                <div class="panel-title">Expense Breakdown</div>
+                                <div class="donut-wrap">
+                                    <svg viewBox="0 0 120 120" class="donut-svg">
+                                        @{
+                                            var colors = new[] { "#2563eb","#f59e0b","#10b981","#ef4444","#8b5cf6","#ec4899","#06b6d4","#f97316" };
+                                            double offset = 0;
+                                            double total = (double)Model.CategoryBreakdown.Sum(c => c.Amount);
+                                            int ci = 0;
+                                            double circumference = 2 * Math.PI * 40;
+                                        }
+                                        @foreach (var cat in Model.CategoryBreakdown)
+                                        {
+                                            double pct = total > 0 ? (double)cat.Amount / total : 0;
+                                            double dash = pct * circumference;
+                                            double gap = circumference - dash;
+                                            double rotation = -90 + (offset / circumference * 360);
+                                            <circle cx="60" cy="60" r="40"
+                                                    fill="none"
+                                                    stroke="@colors[ci % colors.Length]"
+                                                    stroke-width="20"
+                                                    stroke-dasharray="@dash.ToString("F2") @gap.ToString("F2")"
+                                                    transform="rotate(@rotation.ToString("F2") 60 60)" />
+                                            offset += dash;
+                                            ci++;
+                                        }
+                                        <circle cx="60" cy="60" r="28" fill="white" />
+                                        <text x="60" y="56" text-anchor="middle" font-size="9" fill="#718096" font-family="DM Mono">Top</text>
+                                        <text x="60" y="68" text-anchor="middle" font-size="8" fill="#1a202c" font-weight="bold" font-family="DM Mono">@Model.CategoryBreakdown.First().Category</text>
+                                    </svg>
+                                    <div class="donut-legend">
+                                        @{ ci = 0; }
+                                        @foreach (var cat in Model.CategoryBreakdown.Take(5))
+                                        {
+                                            <div class="donut-legend-item">
+                                                <span class="legend-dot" style="background:@colors[ci % colors.Length]"></span>
+                                                <span class="donut-cat">@cat.Category</span>
+                                                <span class="donut-pct">@cat.Percent%</span>
+                                            </div>
+                                            ci++;
+                                        }
+                                    </div>
+                                </div>
+                            </section>
+                        }
+
+                    </div>
+                }
+
+                <!-- Transactions List -->
+                <section class="panel">
+                    <h2 class="panel-title">
+                        Transactions
+                        <span class="count-badge">@Model.FilteredTransactions.Count</span>
+                    </h2>
+
+                    @if (Model.AllCategories.Any())
+                    {
+                        <div class="filter-bar">
+                            <a href="/" class="filter-btn @(Model.ActiveCategory == null ? "active" : "")">All</a>
+                            @foreach (var cat in Model.AllCategories)
+                            {
+                                <a href="?category=@cat" class="filter-btn @(Model.ActiveCategory == cat ? "active" : "")">@cat</a>
+                            }
+                        </div>
+                    }
+
+                    @if (!Model.FilteredTransactions.Any())
+                    {
+                        <div class="empty-state">
+                            <span class="empty-icon">◎</span>
+                            <p>@(Model.Transactions.Any() ? "No transactions in this category." : "No transactions yet. Add your first one!")</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <ul class="transaction-list">
+                            @foreach (var t in Model.FilteredTransactions)
+                            {
+                                <li class="transaction-item @(t.Type == TransactionType.Income ? "income" : "expense")">
+                                    <div class="t-left">
+                                        <span class="t-category">@t.Category</span>
+                                        <span class="t-desc">@t.Description</span>
+                                        <span class="t-date">@t.Date.ToString("MMM d, yyyy · h:mm tt")</span>
+                                    </div>
+                                    <div class="t-right">
+                                        <span class="t-amount">@(t.Type == TransactionType.Income ? "+" : "-")₹@t.Amount.ToString("N0")</span>
+                                        <form asp-action="Delete" method="post" style="display:inline">
+                                            <input type="hidden" name="id" value="@t.Id" />
+                                            <button type="submit" class="btn-delete">✕</button>
+                                        </form>
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </section>
+
+            </div>
+        </div>
+    </main>
+</div>
