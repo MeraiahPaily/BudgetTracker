@@ -4,13 +4,13 @@ A full-stack personal finance web application built with ASP.NET Core MVC and SQ
 
 Features
 
-- **Add & delete transactions** — log income or expenses with a description, amount, and category
-- **Category filtering** — filter your transaction history by category
-- **Monthly budget limit** — set a spending cap with visual warnings when you're at 80% or over
-- **Recurring transactions** — schedule automatic monthly entries (e.g. rent, subscriptions) that apply themselves on the configured day each month
-- **Monthly bar chart** — visualize income vs. expenses across the last 6 months
-- **Category breakdown** — see which spending categories are taking the biggest share
-- **Persistent storage** — all data saved locally via SQLite (`budget.db`), no external database needed
+- Add & delete transactions — log income or expenses with a description, amount, and category
+- Category filtering — filter your transaction history by category
+- Monthly budget limit — set a spending cap with visual warnings when you're at 80% or over
+- Recurring transactions — schedule automatic monthly entries (e.g. rent, subscriptions) that apply themselves on the configured day each month
+- Monthly bar chart — visualize income vs. expenses across the last 6 months
+- Category breakdown — see which spending categories are taking the biggest share
+- Persistent storage — all data saved locally via SQLite (`budget.db`), no external database needed
 
 Tech Stack
 
