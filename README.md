@@ -31,9 +31,11 @@ Run locally
 
 # Clone the repository
 git clone https://github.com/yourusername/BudgetTracker.git
+
 cd BudgetTracker
 
 # Run the app
+
 dotnet run
 
 Then open your browser and go to `http://localhost:5000`.
